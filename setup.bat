@@ -1,6 +1,7 @@
 @echo off
 REM Setup sekali jalan untuk Windows: klik dua kali atau jalankan setup.bat
 setlocal
+set "PATH=C:\php82;%PATH%"
 cd /d "%~dp0"
 
 where php >nul 2>nul || (echo [X] PHP belum terpasang. Butuh PHP 8.2+ & exit /b 1)
