@@ -22,8 +22,12 @@ class TriageClassifier
     private const CRIT_HR_LOW = 40;          // x/menit
     private const CRIT_SPO2 = 90;            // %
 
-    // Skor risiko: Prioritas Sedang bila total >= ambang
+    // Skor risiko (fallback bila service ML tidak tersedia)
     private const MEDIUM_SCORE = 3;
+
+    public function __construct(private ?DiabetesScreeningService $screening = null)
+    {
+    }
 
     public function evaluate(array $in): array
     {
@@ -74,6 +78,78 @@ class TriageClassifier
         if (($sys !== null && $sys >= 140) || ($dia !== null && $dia >= 90)) {
             $score += 1;
             $triggers[] = 'Tekanan darah tinggi';
+        }
+
+        if ($this->screening !== null) {
+            $mode = in_array($in['screening_mode'] ?? '', ['versi_a', 'versi_b'], true)
+                ? $in['screening_mode']
+                : 'versi_a';
+            $threshold = (isset($in['threshold']) && is_numeric($in['threshold']))
+                ? (float) $in['threshold']
+                : null;
+
+            $ai = $this->screening->predict($mode, [
+                'Pregnancies'              => $in['pregnancies'] ?? 0,
+                'Glucose'                  => $in['glucose'] ?? 0,
+                'BloodPressure'            => $in['diastolic_bp'] ?? 0,
+                'SkinThickness'            => $in['skin_thickness'] ?? 0,
+                'Insulin'                  => $in['insulin'] ?? 0,
+                'BMI'                      => $in['bmi'] ?? 0,
+                'DiabetesPedigreeFunction' => $in['dpf'] ?? 0,
+                'Age'                      => $in['age'] ?? 0,
+            ], $threshold);
+
+            if ($critical) {
+                $priority = 'tinggi';
+                $outcome = 1;
+                $triggers = $critical;
+            } elseif ($ai['prediction'] === 1) {
+                $priority = 'sedang';
+                $outcome = 1;
+            } else {
+                $priority = 'rendah';
+                $outcome = 0;
+            }
+
+            if (! $critical) {
+                $modeLabel = $mode === 'versi_b' ? 'Mode B (6 Fitur)' : 'Mode A (8 Fitur)';
+                $triggers = [
+                    "Probabilitas AI: {$ai['probability_pct']}% (Ambang: {$ai['used_threshold']})",
+                    $modeLabel,
+                ];
+                if (! empty($ai['imputed_fields'])) {
+                    $triggers[] = 'Imputasi median: ' . implode(', ', $ai['imputed_fields']);
+                }
+            }
+
+            $copy = [
+                'tinggi' => [
+                    'headline' => 'Prioritas Tinggi – Segera hubungi dokter & bawa ke UGD',
+                    'route' => "Risiko Diabetes AI: {$ai['probability_pct']}% • Alur: hubungi dokter jaga, pasien dibawa ke UGD.",
+                ],
+                'sedang' => [
+                    'headline' => "Prioritas Sedang – {$ai['risk_label']} ({$ai['probability_pct']}%)",
+                    'route' => $ai['recommendation'],
+                ],
+                'rendah' => [
+                    'headline' => "Prioritas Rendah – {$ai['risk_label']} ({$ai['probability_pct']}%)",
+                    'route' => $ai['recommendation'],
+                ],
+            ][$priority];
+
+            return [
+                'priority' => $priority,
+                'label' => self::LABELS[$priority],
+                'outcome' => $outcome,
+                'score' => $score,
+                'headline' => $copy['headline'],
+                'route' => $copy['route'],
+                'triggers' => array_slice($triggers, 0, 4),
+                'probability_pct' => $ai['probability_pct'],
+                'used_threshold' => $ai['used_threshold'],
+                'mode' => $ai['mode'],
+                'imputed_fields' => $ai['imputed_fields'],
+            ];
         }
 
         if ($critical) {

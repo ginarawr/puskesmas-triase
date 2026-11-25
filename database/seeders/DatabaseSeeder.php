@@ -30,7 +30,6 @@ class DatabaseSeeder extends Seeder
         $classifier = new TriageClassifier();
 
         $rows = [
-            ['Tn. Rahmat Hidayat', 'L', 62, 0, 210, 110, 22, 90.0, 27.1, 0.350, 185, 118, 89, 'Nyeri dada kiri, keringat dingin', 40],
             ['Tn. Budi Santoso', 'L', 54, 0, 340, 90, 30, 160.0, 29.4, 0.420, 140, 88, 95, 'Lemas hebat & riwayat diabetes', 30],
             ['Ny. Kartini Suwandi', 'P', 48, 3, 110, 80, 25, 85.0, 24.0, 0.250, 120, 76, 98, 'Batuk pilek ringan 3 hari', 20],
             ['Ny. Aminah Dahlan', 'P', 69, 4, 125, 85, 28, 110.0, 26.5, 0.310, 135, 72, 97, 'Kontrol rutin hipertensi tanpa keluhan', 10],

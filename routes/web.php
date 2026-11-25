@@ -5,7 +5,6 @@ use App\Http\Controllers\Dokter\DashboardController as DokterDashboard;
 use App\Http\Controllers\Dokter\ExaminationController;
 use App\Http\Controllers\Perawat\DashboardController as PerawatDashboard;
 use App\Http\Controllers\Perawat\PatientController;
-use App\Http\Controllers\ScreeningController;
 use App\Http\Middleware\EnsureRole;
 use Illuminate\Support\Facades\Route;
 
@@ -42,9 +41,3 @@ Route::middleware(['auth', EnsureRole::class . ':dokter'])
         Route::get('/pasien/{patient}', [ExaminationController::class, 'show'])->name('pasien.show');
         Route::put('/pasien/{patient}', [ExaminationController::class, 'update'])->name('pasien.update');
     });
-
-// ============================================================
-// Skrining Diabetes — Model ML Pure PHP (tidak perlu login)
-// ============================================================
-Route::get('/screening', [ScreeningController::class, 'index'])->name('screening.index');
-Route::post('/predict', [ScreeningController::class, 'predict'])->name('screening.predict');

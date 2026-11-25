@@ -2,51 +2,39 @@
 
 namespace Tests\Feature;
 
+use App\Services\DiabetesScreeningService;
 use Tests\TestCase;
 
 class ScreeningTest extends TestCase
 {
-    public function test_halaman_skrining_dapat_diakses(): void
+    public function test_rute_screening_terpisah_sudah_dihapus(): void
     {
-        $response = $this->get('/screening');
-
-        $response->assertStatus(200);
-        $response->assertSee('Skrining Risiko Diabetes');
-        $response->assertSee('Peringatan Klinis');
-        $response->assertSee('Puskesmas Harapan Sehat');
+        $this->get('/screening')->assertNotFound();
     }
 
     public function test_prediksi_versi_b_posbindu_skenario_risiko_tinggi(): void
     {
-        $payload = [
-            'mode' => 'versi_b',
+        $service = app(DiabetesScreeningService::class);
+        $data = $service->predict('versi_b', [
             'Pregnancies' => 4,
             'BloodPressure' => 76,
             'SkinThickness' => 30,
             'BMI' => 33.6,
             'DiabetesPedigreeFunction' => 0.627,
             'Age' => 45,
-            'threshold' => 0.40,
-        ];
+        ], 0.40);
 
-        $response = $this->postJson('/predict', $payload);
-
-        $response->assertStatus(200);
-        $response->assertJson([
-            'prediction' => 1,
-            'mode' => 'versi_b',
-            'risk_label' => 'Prioritas Pemeriksaan Laboratorium Lanjut',
-        ]);
-
-        $data = $response->json();
+        $this->assertSame(1, $data['prediction']);
+        $this->assertSame('versi_b', $data['mode']);
+        $this->assertSame('Prioritas Pemeriksaan Laboratorium Lanjut', $data['risk_label']);
         $this->assertEqualsWithDelta(63.81, $data['probability_pct'], 0.1);
         $this->assertNotEmpty($data['top_factors']);
     }
 
     public function test_prediksi_versi_a_lengkap_dengan_imputasi_insulin(): void
     {
-        $payload = [
-            'mode' => 'versi_a',
+        $service = app(DiabetesScreeningService::class);
+        $data = $service->predict('versi_a', [
             'Pregnancies' => 4,
             'Glucose' => 148,
             'BloodPressure' => 76,
@@ -55,26 +43,18 @@ class ScreeningTest extends TestCase
             'BMI' => 33.6,
             'DiabetesPedigreeFunction' => 0.627,
             'Age' => 45,
-            'threshold' => 0.35,
-        ];
+        ], 0.35);
 
-        $response = $this->postJson('/predict', $payload);
-
-        $response->assertStatus(200);
-        $response->assertJson([
-            'prediction' => 1,
-            'mode' => 'versi_a',
-            'risk_label' => 'Prioritas Pemeriksaan Laboratorium Lanjut',
-        ]);
-
-        $data = $response->json();
+        $this->assertSame(1, $data['prediction']);
+        $this->assertSame('versi_a', $data['mode']);
+        $this->assertSame('Prioritas Pemeriksaan Laboratorium Lanjut', $data['risk_label']);
         $this->assertEqualsWithDelta(77.57, $data['probability_pct'], 0.1);
         $this->assertContains('Insulin', $data['imputed_fields']);
     }
 
-    public function test_mode_tidak_valid_mengembalikan_error_422(): void
+    public function test_mode_tidak_valid_melempar_exception(): void
     {
-        $response = $this->postJson('/predict', ['mode' => 'versi_c']);
-        $response->assertStatus(422);
+        $this->expectException(\InvalidArgumentException::class);
+        app(DiabetesScreeningService::class)->predict('versi_c', []);
     }
 }

@@ -72,22 +72,54 @@
     }, seconds * 1000);
   }
 
-  /* Form pasien baru: evaluasi prioritas langsung dari server (satu sumber aturan) */
+  /* Form pasien baru: evaluasi prioritas langsung dari server (AI + tanda vital kritis) */
   const form = $('[data-evaluate-url]');
   const box = $('[data-eval]');
   if (form && box) {
     let timer;
     const outcomeBadge = $('[data-eval-outcome]', box);
+    const modeSelect = form.elements['screening_mode'];
+    const thresholdSlider = $('#threshold-slider', form);
+    const thresholdDisplay = $('#threshold-display', form);
+
+    const syncThresholdLabel = () => {
+      if (thresholdSlider && thresholdDisplay) {
+        thresholdDisplay.textContent = Number(thresholdSlider.value).toFixed(2);
+      }
+    };
+
+    const syncModeFields = () => {
+      const isNonLab = modeSelect?.value === 'versi_b';
+      [form.elements['glucose'], form.elements['insulin']].forEach((el) => {
+        if (!el) return;
+        el.disabled = isNonLab;
+        el.closest('.field')?.classList.toggle('is-disabled', isNonLab);
+      });
+    };
+
+    if (modeSelect && thresholdSlider) {
+      modeSelect.addEventListener('change', () => {
+        thresholdSlider.value = modeSelect.value === 'versi_b' ? '0.40' : '0.35';
+        syncThresholdLabel();
+        syncModeFields();
+      });
+    }
+    syncModeFields();
+    if (thresholdSlider) {
+      thresholdSlider.addEventListener('input', syncThresholdLabel);
+      syncThresholdLabel();
+    }
+
     const render = (r) => {
       box.dataset.tone = r.priority;
       $('[data-eval-title]', box).textContent = r.headline;
       $('[data-eval-route]', box).textContent = r.route;
       $('[data-eval-triggers]', box).textContent = r.triggers.length
-        ? 'Nilai pemicu utama: ' + r.triggers.join(' • ') : 'Tidak ada nilai pemicu.';
-      outcomeBadge.textContent = 'Outcome = ' + r.outcome;
+        ? r.triggers.join(' • ') : 'Tidak ada nilai pemicu.';
+      outcomeBadge.textContent = 'Outcome = ' + r.outcome + (r.probability_pct !== undefined ? ` (${r.probability_pct}%)` : '');
       outcomeBadge.className = 'badge ' + (r.outcome ? 'badge-danger' : 'badge-ok');
     };
-    const hasInput = () => ['glucose', 'diastolic_bp', 'bmi', 'dpf', 'age', 'systolic_bp']
+    const hasInput = () => ['glucose', 'diastolic_bp', 'bmi', 'dpf', 'age', 'systolic_bp', 'skin_thickness', 'insulin']
       .some((n) => form.elements[n]?.value !== '');
 
     const run = () => {
@@ -105,6 +137,7 @@
       }, 300);
     };
     form.addEventListener('input', run);
+    form.addEventListener('change', run);
     run();
   }
 

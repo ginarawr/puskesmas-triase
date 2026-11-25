@@ -26,13 +26,24 @@
             </div>
         </x-ui.card>
 
-        <x-ui.card step="2" title="Parameter & Hasil Tes Klinis (8 Atribut Pima Diabetes)">
-            <x-slot:actions><x-ui.badge>Pima standard</x-ui.badge></x-slot:actions>
+        <x-ui.card step="2" title="Parameter & Hasil Tes Klinis (Skrining AI Pima Diabetes)">
+            <div class="form-grid" style="margin-bottom: 1rem;">
+                <x-ui.select name="screening_mode" label="Mode Skrining AI" value="versi_a"
+                             :options="['versi_a' => 'Mode A — Skrining Lengkap (8 Fitur, dengan Lab)', 'versi_b' => 'Mode B — Triase Posbindu (6 Fitur Non-Lab)']"
+                             hint="Mode B mengabaikan Glukosa & Insulin; Mode A mengimputasi otomatis bila nilainya 0 atau kosong." />
+                <div class="field">
+                    <label class="field-label" for="threshold-slider">
+                        Ambang Keputusan AI (Threshold): <strong id="threshold-display">0.35</strong>
+                    </label>
+                    <input type="range" id="threshold-slider" name="threshold" min="0.25" max="0.60" step="0.05" value="0.35" style="width:100%; accent-color: var(--brand, #0f766e);">
+                    <p class="field-hint">Default: 0.35 (Mode A) / 0.40 (Mode B). Lebih rendah = lebih sensitif.</p>
+                </div>
+            </div>
             <div class="form-grid form-grid-3">
-                <x-ui.input name="glucose" label="1. Glukosa darah sewaktu (Glucose)" type="number" min="20" max="600" inputmode="numeric" suffix="mg/dL" required />
-                <x-ui.input name="diastolic_bp" label="2. Tekanan darah diastolik (BloodPressure)" type="number" min="20" max="200" inputmode="numeric" suffix="mmHg" required />
+                <x-ui.input name="glucose" label="1. Glukosa darah sewaktu (Glucose)" type="number" min="0" max="600" inputmode="numeric" suffix="mg/dL" hint="Boleh 0 / kosong (diimputasi AI)" />
+                <x-ui.input name="diastolic_bp" label="2. Tekanan darah diastolik (BloodPressure)" type="number" min="0" max="200" inputmode="numeric" suffix="mmHg" required />
                 <x-ui.input name="skin_thickness" label="3. Ketebalan lipatan kulit (SkinThickness)" type="number" min="0" max="99" inputmode="numeric" suffix="mm" required />
-                <x-ui.input name="insulin" label="4. Kadar insulin serum (Insulin)" type="number" min="0" max="900" step="0.1" inputmode="decimal" suffix="mu U/ml" required />
+                <x-ui.input name="insulin" label="4. Kadar insulin serum (Insulin)" type="number" min="0" max="900" step="0.1" inputmode="decimal" suffix="mu U/ml" hint="Boleh 0 / kosong (diimputasi AI)" />
                 <x-ui.input name="bmi" label="5. Indeks massa tubuh (BMI)" type="number" min="10" max="70" step="0.1" inputmode="decimal" suffix="kg/m²" required />
                 <x-ui.input name="dpf" label="6. Fungsi silsilah diabetes (Pedigree / DPF)" type="number" min="0" max="3" step="0.001" inputmode="decimal" suffix="skor" required />
             </div>
@@ -70,7 +81,7 @@
                     <p class="eval-route" data-eval-route></p>
                 </div>
             </div>
-            <p class="eval-note">Estimasi otomatis berbasis aturan sederhana, bukan diagnosis. Keputusan akhir tetap pada tenaga kesehatan.</p>
+            <p class="eval-note">Keputusan otomatis menggunakan model AI Logistic Regression + deteksi tanda vital kritis. Bukan diagnosis medis; keputusan akhir tetap pada tenaga kesehatan.</p>
         </section>
 
         <div class="form-actions">

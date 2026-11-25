@@ -75,7 +75,7 @@ Membantu petugas Posbindu memprioritaskan peserta skrining yang membutuhkan peme
 | **SQLite** | (bawaan PHP) | Database — extension `pdo_sqlite` |
 | **Composer** | `2.x` | Package manager PHP |
 
-### 🎨 Frontend & Build Tools
+### Frontend & Build Tools
 
 | Alat | Versi | Keterangan |
 |---|---|---|
@@ -84,7 +84,7 @@ Membantu petugas Posbindu memprioritaskan peserta skrining yang membutuhkan peme
 | **Laravel Vite Plugin** | `^1.2.0` | Integrasi Vite dengan Laravel |
 | **Axios** | `^1.7.4` | HTTP client JavaScript |
 
-### 🧪 Testing & Development (PHP)
+### Testing & Development (PHP)
 
 | Alat | Versi | Keterangan |
 |---|---|---|
@@ -93,7 +93,7 @@ Membantu petugas Posbindu memprioritaskan peserta skrining yang membutuhkan peme
 | **Faker PHP** | `^1.23` | Library data palsu untuk seeding |
 | **Mockery** | `^1.6` | Mocking library untuk pengujian |
 
-### 🤖 Machine Learning (Pelatihan Model — Python)
+### Machine Learning (Pelatihan Model — Python)
 
 | Alat | Versi | Keterangan |
 |---|---|---|
