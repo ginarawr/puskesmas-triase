@@ -12,11 +12,11 @@ Aplikasi web Laravel berbasis triase pasien rawat jalan dengan modul skrining ri
 4. [Prasyarat Sistem](#4-prasyarat-sistem)
 5. [Cara Menjalankan](#5-cara-menjalankan)
 6. [Akun Demo & Login](#6-akun-demo--login)
-7. [Simulasi Perawat — 3 Skenario Lengkap](#7-simulasi-perawat--3-skenario-lengkap)
+7. [Simulasi Perawat — Skenario Lengkap (Triase & AI)]
 8. [Simulasi Dokter — Respons Lengkap](#8-simulasi-dokter--respons-lengkap)
-9. [Simulasi Skrining Diabetes AI](#9-simulasi-skrining-diabetes-ai)
-10. [Menjalankan Tes Otomatis](#10-menjalankan-tes-otomatis)
-11. [Struktur Proyek Penting](#11-struktur-proyek-penting)
+9. [Menjalankan Tes Otomatis](#9-menjalankan-tes-otomatis)
+10. [Struktur Proyek Penting](#10-struktur-proyek-penting)
+11. [Reset Data — Ulangi Simulasi dari Awal](#11-reset-data--ulangi-simulasi-dari-awal)
 
 ---
 
@@ -24,7 +24,7 @@ Aplikasi web Laravel berbasis triase pasien rawat jalan dengan modul skrining ri
 
 Sistem ini dikembangkan sebagai **prototipe penelitian** untuk mendukung alur kerja klinis di puskesmas, dengan dua fungsi utama:
 
-### 🏥 Triase Pasien Rawat Jalan
+### Triase Pasien Rawat Jalan
 Membantu perawat menilai dan mengklasifikasikan prioritas pasien rawat jalan secara cepat berdasarkan tanda vital dan keluhan klinis ke dalam tiga kategori:
 
 | Prioritas | Warna | Kondisi |
@@ -33,7 +33,7 @@ Membantu perawat menilai dan mengklasifikasikan prioritas pasien rawat jalan sec
 | 🟡 **Sedang / Waspada** | Kuning | Perlu observasi & konsultasi dokter |
 | 🟢 **Rendah / Normal** | Hijau | Kondisi stabil, masuk antrian biasa |
 
-### 🤖 Skrining Risiko Diabetes Berbasis AI
+### Skrining Risiko Diabetes Berbasis AI
 Membantu petugas Posbindu memprioritaskan peserta skrining yang membutuhkan pemeriksaan laboratorium lanjutan menggunakan model **Logistic Regression** yang dilatih dengan dataset Pima Indians Diabetes. Tersedia dalam dua mode:
 
 - **Versi A — Skrining Lengkap (8 Fitur):** Menggunakan seluruh parameter termasuk Glucose dan Insulin.
@@ -65,7 +65,7 @@ Membantu petugas Posbindu memprioritaskan peserta skrining yang membutuhkan peme
 
 ## 3. Alat & Versi
 
-### 🖥️ Runtime & Framework (Produksi / Web)
+### Runtime & Framework (Produksi / Web)
 
 | Alat | Versi | Keterangan |
 |---|---|---|
@@ -294,15 +294,22 @@ Setelah login → diarahkan ke **/dokter** (Dashboard Dokter)
 
 ---
 
-## 7. Simulasi Perawat — 3 Skenario Lengkap
+## 7. Simulasi Perawat — Skenario Lengkap (Triase & AI)
 
-Login sebagai Perawat terlebih dahulu, lalu klik tombol **"+ Pasien Baru"** di dashboard.
+Seluruh pengujian skenario triase dan skrining AI dilakukan melalui form perawat di **http://127.0.0.1:8000/perawat/pasien/baru** (login sebagai Perawat terlebih dahulu, lalu klik tombol **"+ Pasien Baru"** di dashboard).
+
+> ⚠️ **PERINGATAN KLINIS:** Sistem ini adalah alat bantu skrining awal dan **BUKAN diagnosis medis**. Hasil evaluasi AI harus selalu dikonfirmasi oleh tenaga kesehatan yang berwenang.
+
+### Pilihan Mode & Ambang Keputusan di Form Perawat
+- **Mode A — Skrining Lengkap (8 Fitur, dengan Lab):** Menggunakan seluruh atribut Pima. Jika nilai `Glucose` atau `Insulin` diisi `0` atau dikosongkan, sistem mengimputasinya otomatis dengan nilai median dataset. Default threshold: **`0.35`**.
+- **Mode B — Triase Posbindu (6 Fitur Non-Lab):** Untuk kondisi tanpa hasil lab. Kolom **Glukosa** dan **Insulin** otomatis **dinonaktifkan (buram/abu-abu)** dan disimpan sebagai `0`. Default threshold: **`0.40`**.
+- **Slider Ambang Keputusan (Threshold `0.25` – `0.60`):** Nilai lebih rendah (`0.25`) membuat skrining lebih sensitif; nilai lebih tinggi (`0.55`) lebih ketat.
 
 ---
 
 ### 🔴 SKENARIO 1 — Prioritas TINGGI (Darurat)
 
-**Tujuan:** Mensimulasikan pasien dengan hiperglikemia berat, hipertensi urgensi, dan saturasi oksigen rendah — yang harus segera dirujuk ke dokter/UGD.
+**Tujuan:** Mensimulasikan pasien dengan tanda vital kritis (hipertensi urgensi & SpO2 kritis) — sistem otomatis menaikkan status ke **Prioritas Tinggi**.
 
 #### Isi Formulir Sebagai Berikut:
 
@@ -320,6 +327,8 @@ Login sebagai Perawat terlebih dahulu, lalu klik tombol **"+ Pasien Baru"** di d
 
 | Field | Nilai | Satuan |
 |---|---|---|
+| Mode Skrining AI | `Mode A — Skrining Lengkap (8 Fitur)` | — |
+| Ambang Keputusan (Threshold) | `0.35` *(default Mode A)* | — |
 | Glukosa darah sewaktu (Glucose) | `240` | mg/dL |
 | Tekanan darah diastolik (BloodPressure) | `110` | mmHg |
 | Ketebalan lipatan kulit (SkinThickness) | `35` | mm |
@@ -347,16 +356,16 @@ Penisilin
 
 #### Hasil yang Diharapkan:
 
-- Sistem menampilkan label **🔴 PRIORITAS TINGGI**
-- Alasan: Glucose >200, BP diastolik >100, SpO2 <92%, Nadi >100
+- Sistem menampilkan label **🔴 PRIORITAS TINGGI** dan **`Outcome = 1`**
+- Pemicu kritis: `TD 185/110 mmHg` (sistolik ≥ 180)
 - Kartu pasien muncul di dashboard dengan warna merah
 - Tombol **"Hubungi Dokter / UGD"** aktif → klik untuk mengirim notifikasi darurat ke dokter
 
 ---
 
-### 🟡 SKENARIO 2 — Prioritas SEDANG (Waspada)
+### 🟡 SKENARIO 2A — Prioritas SEDANG (Mode A: 8 Fitur dengan Imputasi Insulin)
 
-**Tujuan:** Mensimulasikan pasien dengan hiperglikemia sedang dan faktor risiko keluarga — perlu konsultasi dokter namun bukan darurat segera.
+**Tujuan:** Mensimulasikan pasien berisiko tinggi diabetes menggunakan **Mode A (8 Fitur)** tanpa tanda vital kritis, dengan **Insulin dikosongkan / diisi `0`** (diimputasi otomatis oleh AI).
 
 #### Isi Formulir Sebagai Berikut:
 
@@ -368,18 +377,20 @@ Penisilin
 | Jenis kelamin | `Laki-laki` |
 | Usia / Age | `45` |
 | No. Rekam Medis (RM) | *(biarkan auto)* |
-| Riwayat kehamilan (Pregnancies) | `0` |
+| Riwayat kehamilan (Pregnancies) | `4` *(atau `0` untuk simulasi laki-laki)* |
 
 **Bagian 2 — Parameter & Hasil Tes Klinis:**
 
 | Field | Nilai | Satuan |
 |---|---|---|
-| Glukosa darah sewaktu (Glucose) | `160` | mg/dL |
-| Tekanan darah diastolik (BloodPressure) | `88` | mmHg |
-| Ketebalan lipatan kulit (SkinThickness) | `28` | mm |
-| Kadar insulin serum (Insulin) | `140` | mu U/ml |
-| Indeks massa tubuh (BMI) | `29.8` | kg/m² |
-| Fungsi silsilah diabetes (Pedigree/DPF) | `0.520` | skor |
+| Mode Skrining AI | `Mode A — Skrining Lengkap (8 Fitur)` | — |
+| Ambang Keputusan (Threshold) | `0.35` *(default Mode A)* | — |
+| Glukosa darah sewaktu (Glucose) | `148` | mg/dL |
+| Tekanan darah diastolik (BloodPressure) | `76` | mmHg |
+| Ketebalan lipatan kulit (SkinThickness) | `30` | mm |
+| Kadar insulin serum (Insulin) | `0` atau *(kosongkan)* | mu U/ml |
+| Indeks massa tubuh (BMI) | `33.6` | kg/m² |
+| Fungsi silsilah diabetes (Pedigree/DPF) | `0.627` | skor |
 
 **Tanda Vital Tambahan:**
 
@@ -398,10 +409,37 @@ Lemas, sering haus, kencing malam hari lebih dari 3 kali, riwayat keluarga diabe
 
 #### Hasil yang Diharapkan:
 
-- Sistem menampilkan label **🟡 PRIORITAS SEDANG**
-- Alasan: Glucose 160 (di atas normal), TD sistolik 150 (borderline hipertensi)
+- Panel evaluasi AI menampilkan **Probabilitas ~77.57%** (dengan catatan `Imputasi median: Insulin`)
+- **Outcome = `1`** → **🟡 PRIORITAS SEDANG** (*Prioritas Pemeriksaan Laboratorium Lanjut*)
 - Kartu pasien muncul di dashboard dengan warna kuning
-- Perawat dapat memantau dan mendorong konsultasi ke dokter saat giliran tiba
+
+---
+
+### 🟡 SKENARIO 2B — Prioritas SEDANG (Mode B: 6 Fitur Non-Lab)
+
+**Tujuan:** Mensimulasikan triase Posbindu saat hasil tes darah (**Glukosa** & **Insulin**) belum tersedia.
+
+#### Isi Formulir Sebagai Berikut:
+
+| Field | Nilai |
+|---|---|
+| Nama pasien | `Ny. Ratna Sari` |
+| Jenis kelamin | `Perempuan` |
+| Usia / Age | `45` |
+| Riwayat kehamilan (Pregnancies) | `4` |
+| **Mode Skrining AI** | **`Mode B — Triase Posbindu (6 Fitur Non-Lab)`** |
+| Ambang Keputusan (Threshold) | `0.40` *(otomatis berubah ke default Mode B)* |
+| Glukosa & Insulin | *(otomatis disabled/buram oleh form)* |
+| Tekanan darah diastolik (BloodPressure) | `76` mmHg |
+| Ketebalan lipatan kulit (SkinThickness) | `30` mm |
+| Indeks massa tubuh (BMI) | `33.6` kg/m² |
+| Fungsi silsilah diabetes (Pedigree/DPF) | `0.627` |
+
+#### Hasil yang Diharapkan:
+
+- Field Glukosa dan Insulin **nonaktif (buram/abu-abu)** dan tersimpan sebagai `0`
+- Panel evaluasi AI menampilkan **Probabilitas ~63.81%** (`Mode B (6 Fitur)`)
+- **Outcome = `1`** → **🟡 PRIORITAS SEDANG** (*Prioritas Pemeriksaan Laboratorium Lanjut*)
 
 ---
 
@@ -425,6 +463,8 @@ Lemas, sering haus, kencing malam hari lebih dari 3 kali, riwayat keluarga diabe
 
 | Field | Nilai | Satuan |
 |---|---|---|
+| Mode Skrining AI | `Mode A — Skrining Lengkap (8 Fitur)` | — |
+| Ambang Keputusan (Threshold) | `0.35` | — |
 | Glukosa darah sewaktu (Glucose) | `95` | mg/dL |
 | Tekanan darah diastolik (BloodPressure) | `72` | mmHg |
 | Ketebalan lipatan kulit (SkinThickness) | `20` | mm |
@@ -449,8 +489,8 @@ Pemeriksaan rutin tahunan. Tidak ada keluhan berarti. Pola makan baik, rutin ola
 
 #### Hasil yang Diharapkan:
 
-- Sistem menampilkan label **🟢 PRIORITAS RENDAH**
-- Semua nilai dalam batas normal
+- Panel evaluasi AI menampilkan **Probabilitas <30%**
+- **Outcome = `0`** → **🟢 PRIORITAS RENDAH** (*Risiko Rendah — Pemantauan Rutin*)
 - Kartu pasien muncul di dashboard dengan warna hijau
 - Masuk antrean biasa, tidak membutuhkan intervensi segera
 
@@ -582,87 +622,7 @@ Klik **"Simpan & Selesai"** → Status berubah menjadi "Selesai Ditangani".
 
 ---
 
-## 9. Simulasi Skrining Diabetes AI
-
-Akses modul AI secara terpisah di: **http://127.0.0.1:8000/screening**
-
-> ⚠️ **PERINGATAN KLINIS:** Sistem ini adalah alat bantu skrining awal dan **BUKAN diagnosis medis**. Hasil skrining harus selalu dikonfirmasi oleh tenaga kesehatan yang berwenang.
-
-### Mode A — Skrining Lengkap (8 Fitur, termasuk Lab)
-
-#### Skenario Pasien Berisiko Tinggi:
-
-| Parameter | Nilai |
-|---|---|
-| Pregnancies | `4` |
-| Glucose | `148` |
-| BloodPressure | `76` |
-| SkinThickness | `30` |
-| Insulin | `0` *(akan diimputasi otomatis)* |
-| BMI | `33.6` |
-| DiabetesPedigreeFunction | `0.627` |
-| Age | `45` |
-| Threshold | `0.35` (default Versi A) |
-
-**Hasil yang Diharapkan:**
-- **Probabilitas Risiko: ~77.57%**
-- **Status: 🔴 Prioritas Pemeriksaan Laboratorium Lanjut**
-- Insulin diimputasi otomatis dari nilai median dataset (nilai `0` pada insulin dianggap tidak terukur)
-- Faktor teratas: Glucose, BMI, Age, DiabetesPedigreeFunction
-
-#### Skenario Pasien Risiko Rendah:
-
-| Parameter | Nilai |
-|---|---|
-| Pregnancies | `1` |
-| Glucose | `95` |
-| BloodPressure | `70` |
-| SkinThickness | `20` |
-| Insulin | `85` |
-| BMI | `23.4` |
-| DiabetesPedigreeFunction | `0.200` |
-| Age | `28` |
-| Threshold | `0.35` |
-
-**Hasil yang Diharapkan:**
-- **Probabilitas Risiko: <30%**
-- **Status: 🟢 Risiko Rendah — Pemantauan Rutin**
-
----
-
-### Mode B — Triase Posbindu (6 Fitur Non-Lab)
-
-**Gunakan Mode B jika tidak ada hasil lab** (Glucose dan Insulin tidak diperlukan).
-
-#### Skenario Pasien Berisiko Tinggi:
-
-| Parameter | Nilai |
-|---|---|
-| Pregnancies | `4` |
-| BloodPressure | `76` |
-| SkinThickness | `30` |
-| BMI | `33.6` |
-| DiabetesPedigreeFunction | `0.627` |
-| Age | `45` |
-| Threshold | `0.40` (default Versi B) |
-
-**Hasil yang Diharapkan:**
-- **Probabilitas Risiko: ~63.81%**
-- **Status: 🔴 Prioritas Pemeriksaan Laboratorium Lanjut**
-
----
-
-### Fitur Slider Threshold Tuning
-
-Di bawah form skrining terdapat **slider Ambang Keputusan** (0.25 – 0.60):
-
-- **Threshold rendah (misal 0.25):** Sensitivitas lebih tinggi → lebih banyak kasus positif terdeteksi (cocok untuk skrining massal)
-- **Threshold tinggi (misal 0.55):** Spesifisitas lebih tinggi → lebih sedikit false positive (cocok untuk konfirmasi)
-- Geser slider → panel pratinjau menampilkan nilai Sensitivitas & Spesifisitas secara real-time dari tabel threshold_tuning model
-
----
-
-## 10. Menjalankan Tes Otomatis
+## 9. Menjalankan Tes Otomatis
 
 ```powershell
 cd D:\Myproject\puskesmas-triase
@@ -671,11 +631,13 @@ C:\php82\php.exe artisan test
 
 Output yang diharapkan:
 ```
-   PASS  Tests\Feature\AuthTest
-   PASS  Tests\Feature\TriaseTest
+   PASS  Tests\Unit\ExampleTest
+   PASS  Tests\Unit\TriageClassifierTest
+   PASS  Tests\Feature\ExampleTest
    PASS  Tests\Feature\ScreeningTest
+   PASS  Tests\Feature\TriageFlowTest
 
-  Tests:    13 passed (43 assertions)
+  Tests:    14 passed (52 assertions)
   Duration: X.XXs
 ```
 
@@ -686,45 +648,46 @@ C:\php82\php.exe artisan test --filter=ScreeningTest
 
 ---
 
-## 11. Struktur Proyek Penting
+## 10. Struktur Proyek Penting
 
 ```
 puskesmas-triase/
 ├── app/
 │   ├── Http/Controllers/
-│   │   ├── ScreeningController.php     ← Controller skrining AI
-│   │   ├── TriaseController.php        ← Controller triase pasien
-│   │   └── Auth/LoginController.php    ← Autentikasi
+│   │   ├── AuthController.php               ← Autentikasi
+│   │   ├── Perawat/PatientController.php    ← Input pasien & evaluasi AI
+│   │   └── Dokter/ExaminationController.php ← Pemeriksaan dokter
 │   ├── Services/
-│   │   └── DiabetesScreeningService.php ← Inferensi ML Pure PHP
+│   │   ├── DiabetesScreeningService.php     ← Inferensi ML Pure PHP
+│   │   └── TriageClassifier.php             ← Kombinasi AI + tanda vital kritis
 │   └── Models/
 │       ├── User.php
 │       └── Patient.php
 ├── database/
-│   ├── database.sqlite                 ← Database SQLite
+│   ├── database.sqlite                      ← Database SQLite
 │   └── seeders/
-│       ├── UserSeeder.php              ← 2 user demo
-│       └── PatientSeeder.php           ← 4 pasien awal
-├── ml/                                 ← Artefak Machine Learning
-│   ├── pima-indians-diabetes.csv       ← Dataset sumber (UCI / NIDDK)
+│       └── DatabaseSeeder.php               ← 2 user demo & 3 pasien awal
+├── ml/                                      ← Artefak Machine Learning
+│   ├── pima-indians-diabetes.csv            ← Dataset sumber (UCI / NIDDK)
 │   ├── notebook_skrining_diabetes_final.ipynb ← Notebook pelatihan model
-│   ├── model_skrining_diabetes.joblib  ← Model Python (scikit-learn)
-│   └── model_web_bundle.json           ← Model diekspor ke JSON untuk PHP
+│   ├── model_skrining_diabetes.joblib       ← Model Python (scikit-learn)
+│   └── model_web_bundle.json                ← Model diekspor ke JSON untuk PHP
 ├── resources/views/
-│   ├── screening/index.blade.php       ← UI Skrining AI
-│   ├── perawat/                        ← Dashboard Perawat
-│   └── dokter/                         ← Dashboard Dokter
-├── routes/web.php                      ← Semua rute
+│   ├── perawat/patient-form.blade.php       ← Form triase & skrining AI terpadu
+│   ├── perawat/dashboard.blade.php          ← Dashboard Perawat
+│   └── dokter/                              ← Dashboard Dokter
+├── routes/web.php                           ← Semua rute
 ├── storage/app/ml/
-│   └── model_web_bundle.json           ← Model ML aktif (Logistic Regression)
+│   └── model_web_bundle.json                ← Model ML aktif (Logistic Regression)
 ├── tests/Feature/
-│   └── ScreeningTest.php               ← Tes prediksi ML
-└── .env                                ← Konfigurasi (SQLite, APP_KEY, dll.)
+│   ├── ScreeningTest.php                    ← Tes inferensi ML
+│   └── TriageFlowTest.php                   ← Tes alur triase perawat-dokter
+└── .env                                     ← Konfigurasi (SQLite, APP_KEY, dll.)
 ```
 
 ---
 
-## 10. Reset Data — Ulangi Simulasi dari Awal
+## 11. Reset Data — Ulangi Simulasi dari Awal
 
 Jika ingin mengulangi simulasi dan menghapus semua data yang sudah diinput, cukup jalankan **satu perintah** berikut:
 
